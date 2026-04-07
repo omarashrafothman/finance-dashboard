@@ -23,7 +23,7 @@ export default function CurrentMonthExpenseDonutChart({
             nameKey="category"
             innerRadius="52%"
             outerRadius="78%"
-            label
+            isAnimationActive={false}
           >
             {data.map((entry) => (
               <Cell key={entry.category} fill={entry.color} />

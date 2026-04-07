@@ -22,8 +22,8 @@ export default function MonthlyIncomeExpenseBarChart({
           <YAxis tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }} width={42} />
           <Tooltip />
           <Legend />
-          <Bar dataKey="income" fill="#22c55e" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="expense" fill="#ef4444" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="income" fill="#22c55e" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+          <Bar dataKey="expense" fill="#ef4444" radius={[6, 6, 0, 0]} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>

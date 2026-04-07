@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { Edit, SlidersHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { List, type RowComponentProps } from "react-window";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,13 +28,59 @@ import {
 } from "@/functions/transactionsTable";
 import { useTransactions } from "@/lib/hooks/useTransactions";
 import TransactionCard from "@/components/transactions/TransactionCard";
+import { Transaction } from "@/types/transaction";
+
+type MobileRowProps = {
+  items: Transaction[];
+  onDelete: (id: string) => void;
+};
+
+const MobileRow = ({ index, style, items, onDelete }: RowComponentProps<MobileRowProps>) => {
+  const tx = items[index];
+  return (
+    <div style={style} className="px-1 pb-3">
+      <TransactionCard transaction={tx} onDelete={onDelete} />
+    </div>
+  );
+};
+
+type DesktopRowProps = {
+  items: Transaction[];
+  onDelete: (id: string) => void;
+};
+
+const DesktopRow = ({ index, style, items, onDelete }: RowComponentProps<DesktopRowProps>) => {
+  const tx = items[index];
+  return (
+    <div
+      style={style}
+      className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1.2fr] items-center border-t border-primary/10 px-4 text-sm hover:bg-primary/5"
+    >
+      <p className="font-medium">{tx.title}</p>
+      <p>{tx.category}</p>
+      <p className="capitalize">{tx.type}</p>
+      <p>{tx.date}</p>
+      <p className="text-right font-semibold">{tx.amount}</p>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" size="sm" asChild>
+          <Link href={`/transactions/${tx.id}`}>
+            <Edit className="size-4" />
+            Edit
+          </Link>
+        </Button>
+        <Button type="button" variant="destructive" size="sm" onClick={() => onDelete(tx.id)}>
+          <Trash2 className="size-4" />
+          Delete
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 export default function TransactionsPage() {
   const ITEMS_PER_PAGE = 7;
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [mobileScrollTop, setMobileScrollTop] = useState(0);
-  const [desktopScrollTop, setDesktopScrollTop] = useState(0);
   const { visibleTransactions, loading, filters, sort, setFilters, setSort, deleteTransaction, resetFiltersAndSort } =
     useTransactions();
 
@@ -45,36 +92,14 @@ export default function TransactionsPage() {
   }, [visibleTransactions, safeCurrentPage]);
   const shouldVirtualize = visibleTransactions.length > 50;
   const displayedTransactions = shouldVirtualize ? visibleTransactions : paginatedTransactions;
-  const MOBILE_ROW_HEIGHT = 190;
-  const DESKTOP_ROW_HEIGHT = 64;
-  const VIRTUAL_CONTAINER_HEIGHT = 560;
-
-  const mobileVirtual = useMemo(() => {
-    if (!shouldVirtualize) return { topSpacer: 0, bottomSpacer: 0, rows: displayedTransactions };
-    const visibleCount = Math.ceil(VIRTUAL_CONTAINER_HEIGHT / MOBILE_ROW_HEIGHT);
-    const startIndex = Math.max(0, Math.floor(mobileScrollTop / MOBILE_ROW_HEIGHT) - 2);
-    const endIndex = Math.min(displayedTransactions.length, startIndex + visibleCount + 4);
-    const rows = displayedTransactions.slice(startIndex, endIndex);
-    return {
-      topSpacer: startIndex * MOBILE_ROW_HEIGHT,
-      bottomSpacer: Math.max(0, (displayedTransactions.length - endIndex) * MOBILE_ROW_HEIGHT),
-      rows,
-      startIndex,
-    };
-  }, [displayedTransactions, mobileScrollTop, shouldVirtualize]);
-
-  const desktopVirtual = useMemo(() => {
-    if (!shouldVirtualize) return { topSpacer: 0, bottomSpacer: 0, rows: displayedTransactions };
-    const visibleCount = Math.ceil(VIRTUAL_CONTAINER_HEIGHT / DESKTOP_ROW_HEIGHT);
-    const startIndex = Math.max(0, Math.floor(desktopScrollTop / DESKTOP_ROW_HEIGHT) - 4);
-    const endIndex = Math.min(displayedTransactions.length, startIndex + visibleCount + 8);
-    const rows = displayedTransactions.slice(startIndex, endIndex);
-    return {
-      topSpacer: startIndex * DESKTOP_ROW_HEIGHT,
-      bottomSpacer: Math.max(0, (displayedTransactions.length - endIndex) * DESKTOP_ROW_HEIGHT),
-      rows,
-    };
-  }, [desktopScrollTop, displayedTransactions, shouldVirtualize]);
+  const mobileRowProps = useMemo(
+    () => ({ items: displayedTransactions, onDelete: (id: string) => setTransactionToDelete(id) }),
+    [displayedTransactions],
+  );
+  const desktopRowProps = useMemo(
+    () => ({ items: displayedTransactions, onDelete: (id: string) => setTransactionToDelete(id) }),
+    [displayedTransactions],
+  );
 
   const updateFilters = useCallback((updater: (prev: TransactionFilters) => TransactionFilters) => {
     setFilters((prev) => updater(prev));
@@ -259,18 +284,13 @@ export default function TransactionsPage() {
               No transactions found.
             </p>
           ) : shouldVirtualize ? (
-            <div
-              className="max-h-[560px] overflow-y-auto"
-              onScroll={(event) => setMobileScrollTop(event.currentTarget.scrollTop)}
-            >
-              <div style={{ height: mobileVirtual.topSpacer }} />
-              {mobileVirtual.rows.map((tx) => (
-                <div key={tx.id} className="px-1 pb-3">
-                  <TransactionCard transaction={tx} onDelete={(id) => setTransactionToDelete(id)} />
-                </div>
-              ))}
-              <div style={{ height: mobileVirtual.bottomSpacer }} />
-            </div>
+            <List
+              rowCount={displayedTransactions.length}
+              rowHeight={202}
+              rowComponent={MobileRow}
+              rowProps={mobileRowProps}
+              style={{ height: 560, width: "100%" }}
+            />
           ) : (
             displayedTransactions.map((tx) => (
               <TransactionCard key={tx.id} transaction={tx} onDelete={(id) => setTransactionToDelete(id)} />
@@ -293,34 +313,13 @@ export default function TransactionsPage() {
                 <p className="text-right">Amount</p>
                 <p className="text-right">Actions</p>
               </div>
-              <div
-                className="max-h-[560px] overflow-y-auto"
-                onScroll={(event) => setDesktopScrollTop(event.currentTarget.scrollTop)}
-              >
-                <div style={{ height: desktopVirtual.topSpacer }} />
-                {desktopVirtual.rows.map((tx) => (
-                  <div key={tx.id} className="grid h-16 grid-cols-[2fr_1fr_1fr_1fr_1fr_1.2fr] items-center border-t border-primary/10 px-4 text-sm hover:bg-primary/5">
-                    <p className="font-medium">{tx.title}</p>
-                    <p>{tx.category}</p>
-                    <p className="capitalize">{tx.type}</p>
-                    <p>{tx.date}</p>
-                    <p className="text-right font-semibold">{tx.amount}</p>
-                    <div className="flex justify-end gap-2">
-                      <Button type="button" variant="outline" size="sm" asChild>
-                        <Link href={`/transactions/${tx.id}`}>
-                          <Edit className="size-4" />
-                          Edit
-                        </Link>
-                      </Button>
-                      <Button type="button" variant="destructive" size="sm" onClick={() => setTransactionToDelete(tx.id)}>
-                        <Trash2 className="size-4" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                <div style={{ height: desktopVirtual.bottomSpacer }} />
-              </div>
+              <List
+                rowCount={displayedTransactions.length}
+                rowHeight={64}
+                rowComponent={DesktopRow}
+                rowProps={desktopRowProps}
+                style={{ height: 560, width: "100%" }}
+              />
             </div>
           ) : (
             <table className="min-w-full text-sm">

@@ -5,13 +5,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import SummaryCard from "@/components/dashboard/SummaryCard";
 import { useTransactions } from "@/lib/hooks/useTransactions";
 
+const ChartSkeleton = () => <div className="h-[320px] animate-pulse rounded-xl bg-muted/60" />;
+
 const MonthlyIncomeExpenseBarChart = dynamic(
   () => import("@/components/charts/MonthlyIncomeExpenseBarChart"),
-  { ssr: false },
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton />,
+  },
 );
 const CurrentMonthExpenseDonutChart = dynamic(
   () => import("@/components/charts/CurrentMonthExpenseDonutChart"),
-  { ssr: false },
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton />,
+  },
 );
 
 const CHART_COLORS = ["#3b82f6", "#06b6d4", "#22c55e", "#a855f7", "#f97316", "#eab308", "#ef4444"];
@@ -118,9 +126,19 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <SummaryCard label="Total Balance" value={metrics.balance} trend={metrics.balanceTrend} />
-        <SummaryCard label="Income" value={metrics.income} trend={metrics.incomeTrend} />
-        <SummaryCard label="Expenses" value={metrics.expenses} trend={metrics.expensesTrend} />
+        {loading ? (
+          <>
+            <div className="h-28 animate-pulse rounded-xl border border-primary/20 bg-muted/60" />
+            <div className="h-28 animate-pulse rounded-xl border border-primary/20 bg-muted/60" />
+            <div className="h-28 animate-pulse rounded-xl border border-primary/20 bg-muted/60" />
+          </>
+        ) : (
+          <>
+            <SummaryCard label="Total Balance" value={metrics.balance} trend={metrics.balanceTrend} />
+            <SummaryCard label="Income" value={metrics.income} trend={metrics.incomeTrend} />
+            <SummaryCard label="Expenses" value={metrics.expenses} trend={metrics.expensesTrend} />
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -131,7 +149,7 @@ export default function Dashboard() {
               <h3 className="text-xl font-semibold text-primary">Last 6 Months</h3>
             </div>
             {loading ? (
-              <div className="h-[320px] animate-pulse rounded-xl bg-muted/60" />
+              <ChartSkeleton />
             ) : (
               <MonthlyIncomeExpenseBarChart data={last6MonthsData} />
             )}
@@ -145,7 +163,7 @@ export default function Dashboard() {
               <h3 className="text-xl font-semibold text-primary">Expenses by Category</h3>
             </div>
             {loading ? (
-              <div className="h-[320px] animate-pulse rounded-xl bg-muted/60" />
+              <ChartSkeleton />
             ) : (
               <CurrentMonthExpenseDonutChart data={currentMonthExpenseByCategory} />
             )}
