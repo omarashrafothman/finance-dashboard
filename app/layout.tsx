@@ -53,7 +53,7 @@ export default function RootLayout({
           <div className="flex bg-gradient-to-br from-background via-background to-primary/5">
             <Sidebar className="hidden md:flex" />
             <MobileSidebar />
-            <main className="min-h-screen flex-1 bg-background/80 p-4 pt-16 md:p-6">{children}</main>
+            <main className="min-h-screen flex-1 bg-background/80 p-2 pt-14 md:p-4">{children}</main>
           </div>
           <Toaster richColors position="top-right" />
         </ThemeProvider>
